@@ -44,6 +44,46 @@ public static class TerrainAnalysis
     }
 
     /// <summary>
+    /// Iluminación del relieve (hillshade) en [0, 1] con una luz direccional. Se usa para dar volumen a la
+    /// vista previa en color.
+    /// </summary>
+    /// <param name="height">Heightmap con alturas en [0, 1].</param>
+    /// <param name="heightScale">Igual que en <see cref="SlopeDegrees"/>.</param>
+    /// <param name="azimuthDegrees">Dirección de la luz en grados (315 = noroeste, la convención cartográfica).</param>
+    /// <param name="elevationDegrees">Altura de la luz sobre el horizonte.</param>
+    public static FloatMap Hillshade(FloatMap height, float heightScale, float azimuthDegrees = 315f,
+        float elevationDegrees = 45f)
+    {
+        ArgumentNullException.ThrowIfNull(height);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(heightScale);
+
+        var azimuth = azimuthDegrees * MathF.PI / 180f;
+        var elevation = elevationDegrees * MathF.PI / 180f;
+        // Vector hacia la luz (y crece hacia el sur en la imagen).
+        var lx = MathF.Cos(elevation) * MathF.Sin(azimuth);
+        var ly = -MathF.Cos(elevation) * MathF.Cos(azimuth);
+        var lz = MathF.Sin(elevation);
+
+        var w = height.Width;
+        var h = height.Height;
+        var shade = new FloatMap(w, h);
+        for (var y = 0; y < h; y++)
+        {
+            for (var x = 0; x < w; x++)
+            {
+                var dx = (height.GetClamped(x + 1, y) - height.GetClamped(x - 1, y)) * 0.5f * heightScale;
+                var dy = (height.GetClamped(x, y + 1) - height.GetClamped(x, y - 1)) * 0.5f * heightScale;
+                // Normal de la superficie z = f(x, y): (−dx, −dy, 1) normalizada.
+                var length = MathF.Sqrt((dx * dx) + (dy * dy) + 1f);
+                var light = ((-dx * lx) + (-dy * ly) + lz) / length;
+                shade[x, y] = Math.Clamp(light, 0f, 1f);
+            }
+        }
+
+        return shade;
+    }
+
+    /// <summary>
     /// Suavizado por caja (box blur) separable de radio <paramref name="radius"/>. Devuelve un mapa nuevo.
     /// </summary>
     public static FloatMap BoxBlur(FloatMap map, int radius)
