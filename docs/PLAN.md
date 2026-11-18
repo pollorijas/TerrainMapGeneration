@@ -1,7 +1,7 @@
 # TerrainMapGeneration — Investigación y planificación
 
-> Estado: **borrador para aprobación**. Ningún código se escribe hasta que el plan se apruebe.
-> Fecha: 2026-11-18.
+> Estado: **aprobado e implementado como v0.1.0** (2026-11-18). Ver §5 para los cambios respecto a
+> lo aprobado.
 
 Herramienta propia, gratuita y sencilla para convertir un *heightmap* en escala de grises en un
 mapa de terreno utilizable en un juego 2D de vista cenital (estilo Pokémon): erosión, capas de
@@ -100,8 +100,8 @@ produce "terrazas".
 | **Magick.NET** | Lee casi cualquier formato (TIFF, EXR, DEM…). | Pesada (ImageMagick nativo), excesiva para este caso. |
 | System.Drawing.Common | Conocida. | **Solo Windows** desde .NET 6. Descartada. |
 
-**Decisión:** ImageSharp, **aislada en un único proyecto** (`TerrainMapGeneration.Imaging`) para que
-el núcleo no dependa de ella y pueda cambiarse por SkiaSharp si la licencia llegara a importar.
+**Decisión inicial:** ImageSharp, aislada en `TerrainMapGeneration.Imaging`.
+**Decisión final (ver §5):** códec PNG propio dentro de `Imaging`, sin dependencias externas.
 
 **Interfaz gráfica (v2)**
 
@@ -150,7 +150,7 @@ Para la herramienta en sí **no hace falta** ningún framework de juegos.
               │
 ┌─────────────▼──────────────┐   ┌──────────────────────────────┐
 │ TerrainMapGeneration.Core  │   │ TerrainMapGeneration.Imaging │
-│ (sin dependencias externas)│◄──┤ (ImageSharp: PNG ⇄ FloatMap) │
+│ (sin dependencias externas)│◄──┤ (códec PNG: PNG ⇄ FloatMap)  │
 │ FloatMap, erosión, análisis│   └──────────────────────────────┘
 │ capas, máscaras, tiles     │
 └────────────────────────────┘
@@ -394,3 +394,20 @@ dependen de imágenes externas**. Para probar la herramienta a mano necesitas:
 4. Decidir: **tamaño de tile** (16 px por defecto), **cuántos píxeles del heightmap equivalen a un
    tile** (por defecto 1 px = 1 px del mapa final, tile = 16×16 px) y **la lista de superficies**
    que tu juego necesita (por defecto: agua, arena, pasto, roca, nieve) con un color para cada una.
+
+---
+
+## 5. Cambios durante la implementación de la v0.1
+
+| Cambio | Motivo |
+|--------|--------|
+| **ImageSharp → códec PNG propio** (`Imaging/Png`, solo `System.IO.Compression`). | ImageSharp 4.x exige una clave de licencia registrada para compilar en Release, y la última 3.x (3.1.12) tiene vulnerabilidades de severidad alta sin corregir. Un lector/escritor PNG es pequeño (≈570 líneas con comentarios), se prueba contra archivos de Pillow e ImageMagick y elimina la dependencia. Contrapartida: solo se admite PNG (otros formatos se convierten antes con GIMP/Krita). |
+| `heightScale` por defecto **32** (no 64). | Con 64 la pendiente mediana de la isla de ejemplo era 36°, y casi todo quedaba como roca. |
+| 6 capas por defecto: se añade **tierra** (zonas muy erosionadas). | Para que la erosión influya visiblemente en las capas, como pide el requisito. |
+| `maskSmoothingRadius` suaviza también la pendiente. | Los surcos de un píxel de la erosión hidráulica moteaban las máscaras. |
+| Bordes de `RangeRule` **centrados**. | Dos capas con un borde común y el mismo `falloff` suman exactamente 1: sin huecos ni solapes. |
+| `HeightScale` sale de `ThermalErosionSettings`; se pasa al constructor de `ThermalErosion`. | Es una propiedad del terreno, no de la erosión; así no se repite en el JSON. |
+| Comando extra `terrain colorize`. | Fue el primer hito (cargar heightmap y exportar un RGB básico); se conserva por utilidad. |
+| Erosión hidráulica: la velocidad crece al bajar y las gotas que mueren dentro del mapa depositan su carga. | La referencia tiene el signo de la velocidad invertido y "pierde" sedimento; así la masa se conserva salvo lo que sale por los bordes. |
+| Todo el trabajo va en una rama de sesión con un commit por tarea, en lugar de una rama por tarea. | Restricción del entorno donde se desarrolló; el historial sigue siendo de un commit por tarea. |
+
