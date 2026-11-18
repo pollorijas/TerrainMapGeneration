@@ -1,12 +1,10 @@
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.PixelFormats;
 using TerrainMapGeneration.Core.Export;
 using TerrainMapGeneration.Core.Maps;
+using TerrainMapGeneration.Imaging.Png;
 
 namespace TerrainMapGeneration.Imaging;
 
-/// <summary>Guarda mapas y colores del núcleo como archivos PNG.</summary>
+/// <summary>Guarda mapas y colores del núcleo como archivos PNG. Crea las carpetas que falten.</summary>
 public static class ImageWriter
 {
     /// <summary>
@@ -16,67 +14,57 @@ public static class ImageWriter
     public static void SaveGray16(FloatMap map, string path)
     {
         ArgumentNullException.ThrowIfNull(map);
-        using var image = new Image<L16>(map.Width, map.Height);
-        image.ProcessPixelRows(accessor =>
+        var bytes = new byte[map.Length * 2];
+        for (var i = 0; i < map.Length; i++)
         {
-            for (var y = 0; y < accessor.Height; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                for (var x = 0; x < row.Length; x++)
-                {
-                    row[x] = new L16(ToUInt16(map[x, y]));
-                }
-            }
-        });
-        Save(image, path, new PngEncoder { BitDepth = PngBitDepth.Bit16, ColorType = PngColorType.Grayscale });
+            var v = (ushort)MathF.Round(Math.Clamp(map.Data[i], 0f, 1f) * ushort.MaxValue);
+            bytes[i * 2] = (byte)(v >> 8);
+            bytes[(i * 2) + 1] = (byte)v;
+        }
+
+        Encode(path, map.Width, map.Height, PngColorType.Grayscale, 16, bytes);
     }
 
     /// <summary>Guarda un <see cref="FloatMap"/> en gris de 8 bits. Suficiente para máscaras.</summary>
     public static void SaveGray8(FloatMap map, string path)
     {
         ArgumentNullException.ThrowIfNull(map);
-        using var image = new Image<L8>(map.Width, map.Height);
-        image.ProcessPixelRows(accessor =>
+        var bytes = new byte[map.Length];
+        for (var i = 0; i < map.Length; i++)
         {
-            for (var y = 0; y < accessor.Height; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                for (var x = 0; x < row.Length; x++)
-                {
-                    row[x] = new L8(ToByte(map[x, y]));
-                }
-            }
-        });
-        Save(image, path, new PngEncoder { BitDepth = PngBitDepth.Bit8, ColorType = PngColorType.Grayscale });
+            bytes[i] = (byte)MathF.Round(Math.Clamp(map.Data[i], 0f, 1f) * byte.MaxValue);
+        }
+
+        Encode(path, map.Width, map.Height, PngColorType.Grayscale, 8, bytes);
     }
 
     /// <summary>
-    /// Guarda una imagen RGBA. Si todos los píxeles son opacos se escribe como RGB (sin canal alfa)
-    /// para que los editores no alteren los colores al premultiplicar alfa.
+    /// Guarda una imagen RGBA. Si todos los píxeles son opacos se escribe como RGB (sin canal alfa),
+    /// así los editores no alteran colores al premultiplicar alfa.
     /// </summary>
-    public static void SaveRgba(RgbaImage source, string path)
+    public static void SaveRgba(RgbaImage image, string path)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        using var image = new Image<Rgba32>(source.Width, source.Height);
-        var opaque = true;
-        image.ProcessPixelRows(accessor =>
+        ArgumentNullException.ThrowIfNull(image);
+        var opaque = image.Pixels.All(p => p.A == 255);
+        var channels = opaque ? 3 : 4;
+        var bytes = new byte[image.Pixels.Length * channels];
+        for (var i = 0; i < image.Pixels.Length; i++)
         {
-            for (var y = 0; y < accessor.Height; y++)
+            var p = image.Pixels[i];
+            var o = i * channels;
+            bytes[o] = p.R;
+            bytes[o + 1] = p.G;
+            bytes[o + 2] = p.B;
+            if (!opaque)
             {
-                var row = accessor.GetRowSpan(y);
-                for (var x = 0; x < row.Length; x++)
-                {
-                    var c = source[x, y];
-                    opaque &= c.A == 255;
-                    row[x] = new Rgba32(c.R, c.G, c.B, c.A);
-                }
+                bytes[o + 3] = p.A;
             }
-        });
-        var colorType = opaque ? PngColorType.Rgb : PngColorType.RgbWithAlpha;
-        Save(image, path, new PngEncoder { BitDepth = PngBitDepth.Bit8, ColorType = colorType });
+        }
+
+        Encode(path, image.Width, image.Height, opaque ? PngColorType.Rgb : PngColorType.RgbAlpha, 8, bytes);
     }
 
-    private static void Save(Image image, string path, PngEncoder encoder)
+    private static void Encode(string path, int width, int height, PngColorType type, int depth, byte[] bytes)
     {
         var directory = Path.GetDirectoryName(Path.GetFullPath(path));
         if (!string.IsNullOrEmpty(directory))
@@ -84,10 +72,6 @@ public static class ImageWriter
             Directory.CreateDirectory(directory);
         }
 
-        image.SaveAsPng(path, encoder);
+        PngEncoder.Encode(path, width, height, type, depth, bytes);
     }
-
-    private static ushort ToUInt16(float v) => (ushort)MathF.Round(Math.Clamp(v, 0f, 1f) * ushort.MaxValue);
-
-    private static byte ToByte(float v) => (byte)MathF.Round(Math.Clamp(v, 0f, 1f) * byte.MaxValue);
 }
