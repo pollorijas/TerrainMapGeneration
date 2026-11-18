@@ -8,7 +8,7 @@ public class ThermalErosionTests
     private const float HeightScale = 64f;
 
     private static ThermalErosion Create(int iterations, float talus = 35f, float strength = 0.5f) =>
-        new(new ThermalErosionSettings(iterations, talus, strength, HeightScale));
+        new(new ThermalErosionSettings(iterations, talus, strength), HeightScale);
 
     /// <summary>Mayor exceso sobre el ángulo de reposo entre vecinos de 4 direcciones.</summary>
     private static float MaxExcessOverTalus(FloatMap map, float talusDegrees)

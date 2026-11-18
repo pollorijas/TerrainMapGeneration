@@ -8,12 +8,10 @@ namespace TerrainMapGeneration.Core.Erosion;
 /// Ángulo de reposo: el material se desmorona donde la pendiente lo supera. Valores típicos: 30–40°.
 /// </param>
 /// <param name="Strength">Fracción (0–1) del exceso que se mueve en cada pasada.</param>
-/// <param name="HeightScale">Altura máxima en píxeles horizontales (igual que en el cálculo de pendiente).</param>
 public sealed record ThermalErosionSettings(
     int Iterations = 50,
     float TalusAngleDegrees = 35f,
-    float Strength = 0.5f,
-    float HeightScale = 64f);
+    float Strength = 0.5f);
 
 /// <summary>
 /// Erosión térmica (Musgrave, Kolb y Mace, 1989): donde la diferencia de altura con un vecino supera
@@ -29,7 +27,11 @@ public sealed record ThermalErosionSettings(
 /// no depende del orden de recorrido y la masa total se conserva: lo que sale de una celda entra en otra
 /// y nada sale por los bordes.</para>
 /// </remarks>
-public sealed class ThermalErosion(ThermalErosionSettings settings) : IHeightMapFilter
+/// <param name="settings">Parámetros de la erosión.</param>
+/// <param name="heightScale">
+/// Altura máxima del terreno en píxeles horizontales (la misma que se usa para calcular la pendiente).
+/// </param>
+public sealed class ThermalErosion(ThermalErosionSettings settings, float heightScale) : IHeightMapFilter
 {
     private static readonly (int Dx, int Dy, float Distance)[] Neighbors =
     [
@@ -41,6 +43,11 @@ public sealed class ThermalErosion(ThermalErosionSettings settings) : IHeightMap
     /// <summary>Parámetros con los que se creó el filtro.</summary>
     public ThermalErosionSettings Settings { get; } = Validate(settings);
 
+    /// <summary>Altura máxima del terreno en píxeles horizontales.</summary>
+    public float HeightScale { get; } = heightScale > 0
+        ? heightScale
+        : throw new ArgumentOutOfRangeException(nameof(heightScale), heightScale, "Debe ser mayor que 0.");
+
     /// <inheritdoc />
     public void Apply(FloatMap heightMap)
     {
@@ -50,7 +57,7 @@ public sealed class ThermalErosion(ThermalErosionSettings settings) : IHeightMap
         var h = heightMap.Height;
         var data = heightMap.Data;
         var delta = new float[data.Length];
-        var tanTalus = MathF.Tan(Settings.TalusAngleDegrees * MathF.PI / 180f) / Settings.HeightScale;
+        var tanTalus = MathF.Tan(Settings.TalusAngleDegrees * MathF.PI / 180f) / HeightScale;
         Span<float> thresholds = stackalloc float[Neighbors.Length];
         for (var n = 0; n < Neighbors.Length; n++)
         {
@@ -125,7 +132,6 @@ public sealed class ThermalErosion(ThermalErosionSettings settings) : IHeightMap
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(s.TalusAngleDegrees, 90f);
         ArgumentOutOfRangeException.ThrowIfNegative(s.Strength);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(s.Strength, 1f);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(s.HeightScale);
         return s;
     }
 }
