@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TerrainMapGeneration.Core\TerrainMapGeneration.Core.csproj" />
+    <ProjectReference Include="..\TerrainMapGeneration.Imaging\TerrainMapGeneration.Imaging.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>terrain</AssemblyName>
+    <RootNamespace>TerrainMapGeneration.Cli</RootNamespace>
+  </PropertyGroup>
+
+</Project>

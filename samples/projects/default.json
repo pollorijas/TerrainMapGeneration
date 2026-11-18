@@ -1,0 +1,118 @@
+{
+  "input": "../heightmaps/island_256.png",
+  "outputDirectory": "../../output/island_256",
+  "normalizeInput": false,
+  "heightScale": 32,
+  "thermal": {
+    "iterations": 50,
+    "talusAngleDegrees": 35,
+    "strength": 0.5
+  },
+  "hydraulic": {
+    "droplets": 50000,
+    "seed": 0,
+    "brushRadius": 3,
+    "inertia": 0.05,
+    "sedimentCapacityFactor": 4,
+    "minSedimentCapacity": 0.01,
+    "erodeSpeed": 0.3,
+    "depositSpeed": 0.3,
+    "evaporateSpeed": 0.01,
+    "gravity": 4,
+    "maxLifetime": 30,
+    "initialWater": 1,
+    "initialSpeed": 1
+  },
+  "maskSmoothingRadius": 1,
+  "layers": [
+    {
+      "name": "agua",
+      "color": "#3A78C2",
+      "altitude": {
+        "max": 0.2,
+        "falloff": 0.02
+      },
+      "weight": 1
+    },
+    {
+      "name": "arena",
+      "color": "#E3D29A",
+      "altitude": {
+        "min": 0.2,
+        "max": 0.25,
+        "falloff": 0.02
+      },
+      "slope": {
+        "max": 25,
+        "falloff": 10
+      },
+      "weight": 1
+    },
+    {
+      "name": "pasto",
+      "color": "#5FA84A",
+      "altitude": {
+        "min": 0.25,
+        "max": 0.78,
+        "falloff": 0.02
+      },
+      "slope": {
+        "max": 30,
+        "falloff": 10
+      },
+      "erosion": {
+        "max": 0.45,
+        "falloff": 0.3
+      },
+      "weight": 1
+    },
+    {
+      "name": "tierra",
+      "color": "#9C7A4F",
+      "altitude": {
+        "min": 0.25,
+        "max": 0.78,
+        "falloff": 0.02
+      },
+      "slope": {
+        "max": 30,
+        "falloff": 10
+      },
+      "erosion": {
+        "min": 0.45,
+        "falloff": 0.3
+      },
+      "weight": 1
+    },
+    {
+      "name": "roca",
+      "color": "#8A8173",
+      "altitude": {
+        "min": 0.2,
+        "falloff": 0.02
+      },
+      "slope": {
+        "min": 30,
+        "falloff": 10
+      },
+      "weight": 1
+    },
+    {
+      "name": "nieve",
+      "color": "#F4F6F8",
+      "altitude": {
+        "min": 0.78,
+        "falloff": 0.02
+      },
+      "slope": {
+        "max": 30,
+        "falloff": 10
+      },
+      "weight": 1
+    }
+  ],
+  "fallbackLayer": "roca",
+  "tileSize": 16,
+  "shadingStrength": 0.5,
+  "fallbackLayerIndex": 4
+}

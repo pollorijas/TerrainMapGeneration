@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TerrainMapGeneration.Core\TerrainMapGeneration.Core.csproj" />
+  </ItemGroup>
+
+</Project>
