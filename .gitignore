@@ -1,0 +1,16 @@
+# Compilación .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+TestResults/
+*.trx
+coverage*/
+
+# Salidas generadas por la herramienta
+output/
+out/
